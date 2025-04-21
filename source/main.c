@@ -62,6 +62,12 @@ void shootBullet(RGFW_window* window, u8* background, RGFW_point* bullet, u8* st
     }
 }
 
+#ifdef _MSC_VER
+int main(void);
+int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmd, int nShow) {
+    main();
+}
+#endif 
 
 int main(void) {
     srand(time(NULL));
@@ -86,6 +92,7 @@ int main(void) {
 
     RGFW_point bullet = RGFW_POINT(0, 0);
     RGFW_point alienBullet[11 * 5];
+    size_t alienCount = 11 * 5;
 
     u8 alienSpriteState = 0;
 
@@ -105,6 +112,7 @@ int main(void) {
                 for (size_t i = 0; i < 4; i++)
                     drawSprite(background, window->r.w, window->r.h, wallSprite, 40 + (i * 80), window->r.h - 100, 40, 40);
                 memset(alienState, stateNormal, sizeof(alienState));
+                alienCount = 11 * 5;
             } else {
                 for (size_t i = 0; i < sizeof(alienState); i++) {
                     if (alienState[i] == stateShoot)
@@ -123,70 +131,73 @@ int main(void) {
         if (playerState == stateShoot) {
             shootBullet(window, background, &bullet, &playerState, -5);
         }
+        
+        if (alienCount > 0) {
+            for (size_t x = 0; x < alien.w; x++) {
+                for (size_t y = 0; y < alien.h; y++) {
+                    size_t index = (y * alien.w) + x;
+                    if (alienState[index] == stateDie) continue;
+                    
 
-        for (size_t x = 0; x < alien.w; x++) {
-            for (size_t y = 0; y < alien.h; y++) {
-                size_t index = (y * alien.w) + x;
-                if (alienState[index] == stateDie) continue;
+                    size_t spriteIndex = ((y * 2) + alienSpriteState) * 20;
+    //                if (y == 0) spriteIndex -= 1;
+
+                    spriteIndex = (spriteIndex * 20 * 4);  
+
+                    u32 collide = drawSprite(window->buffer, window->r.w, window->r.h, &alienSprite[spriteIndex], (x * 25) + alien.x, (y * 25) + alien.y, 20, 20);
+                    switch (collide) {
+                        case 0xFFFFFFFF: // coliding with a bullet
+                            if (playerState == stateShoot) {
+                                alienState[index] = stateDie;
+                                alienCount -= 1;
+                                playerState = stateNormal;
+                            }
+                            break;
+                        default: break;
+                    }
+
+                    if (alienState[index] == stateShoot) {
+                        shootBullet(window, background, &alienBullet[index], &alienState[index], 5);
+                    }
+                }
+            }
                 
+            if ((frameCount % 40) == 0) {
+                size_t shots = rand() % 3;
+                for (size_t i = 0; i < shots; i++) {
+                    size_t x = rand() % alien.w;
+                    size_t y = rand() % alien.h;
+                    size_t index = (y * alien.w) + x;
 
-                size_t spriteIndex = ((y * 2) + alienSpriteState) * 20;
-//                if (y == 0) spriteIndex -= 1;
+                    if (alienState[index] == stateDie) {
+                        i--;
+                        continue;
+                    }
 
-                spriteIndex = (spriteIndex * 20 * 4);  
-
-                u32 collide = drawSprite(window->buffer, window->r.w, window->r.h, &alienSprite[spriteIndex], (x * 25) + alien.x, (y * 25) + alien.y, 20, 20);
-                switch (collide) {
-                    case 0xFFFFFFFF: // coliding with a bullet
-                        if (playerState == stateShoot) {
-                            alienState[index] = stateDie;
-                            playerState = stateNormal;
-                        }
-                        break;
-                    default: break;
-                }
-
-                if (alienState[index] == stateShoot) {
-                    shootBullet(window, background, &alienBullet[index], &alienState[index], 5);
+                    alienState[index] = stateShoot;
+                    alienBullet[index] = RGFW_POINT(((x * 25) + alien.x) - 5, ((y + 25) + alien.x) + 36);
                 }
             }
-        }
             
-        if ((frameCount % 40) == 0) {
-            size_t shots = rand() % 3;
-            for (size_t i = 0; i < shots; i++) {
-                size_t x = rand() % alien.w;
-                size_t y = rand() % alien.h;
-                size_t index = (y * alien.w) + x;
-
-                if (alienState[index] == stateDie) {
-                    i--;
-                    continue;
+                if ((frameCount % 40) == 0){
+                    alienSpriteState = 1;
+                }
+                if ((frameCount % 50) == 0 && playerState != stateDie) {
+                    alienSpriteState = 0;
+                    if (alienDir == -1 && (alien.x <= 5 && alien.y + (alien.h * 20) < window->r.h - 30)) {
+                        alien.y += 20;
+                        alienDir = 1;
+                    } else if (alienDir == 1 && ((alien.x + (alien.w * 25)) >= (window->r.w - 15) && alien.y + (alien.h * 20) < window->r.h - 30)) {
+                        alien.y += 20;
+                        alienDir = -1;
+                    } else { 
+                        alien.x += alienDir * 5;
+                    }
                 }
 
-                alienState[index] = stateShoot;
-                alienBullet[index] = RGFW_POINT(((x * 25) + alien.x) - 5, ((y + 25) + alien.x) + 36);
-            }
-        }
-
-        if ((frameCount % 40) == 0){
-            alienSpriteState = 1;
-        }
-        if ((frameCount % 50) == 0 && playerState != stateDie) {
-            alienSpriteState = 0;
-            if (alienDir == -1 && (alien.x <= 5 && alien.y + (alien.h * 20) < window->r.h - 30)) {
-                alien.y += 20;
-                alienDir = 1;
-            } else if (alienDir == 1 && ((alien.x + (alien.w * 25)) >= (window->r.w - 15) && alien.y + (alien.h * 20) < window->r.h - 30)) {
-                alien.y += 20;
-                alienDir = -1;
-            } else { 
-                alien.x += alienDir * 5;
-            }
-        }
-
-        if (alien.y + (alien.h * 20) >= window->r.h - 40)
+            if (alien.y + (alien.h * 20) >= window->r.h - 40)
             playerState = stateDie;
+        }
 
         u32 collide = drawSprite(window->buffer, window->r.w, window->r.h, lonicSprite, player.x, player.y, player.w, player.h);
         switch (collide) {
