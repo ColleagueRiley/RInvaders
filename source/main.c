@@ -98,7 +98,7 @@ int main(void) {
 
     while (RGFW_window_shouldClose(window) == RGFW_FALSE) {
         while (RGFW_window_checkEvent(window));
-        if (playerState != stateDie) {
+        if (playerState != stateDie || alienCount <= 0) {
             if (RGFW_isPressed(window, RGFW_left))
                 player.x -= 3;
             if (RGFW_isPressed(window, RGFW_right))
@@ -124,6 +124,12 @@ int main(void) {
             playerState = stateNormal;
             alien = RGFW_RECT(30, 30, 11, 5);
             alienDir = 1;
+        }
+
+        if (player.x > window->r.w) {
+            player.x = player.x - window->r.w;
+        } else if (player.x < 0) {
+            player.x = window->r.w + player.x;
         }
         
         memcpy(window->buffer, background, window->r.w * window->r.h * 4);
