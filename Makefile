@@ -34,7 +34,7 @@ ifeq ($(detected_OS),Windows)
 	LIBS := -lgdi32 
 	EXT = .exe
 	OS_DIR = \\
-#	LIBS += -mwindows
+	LIBS += -mwindows
 endif
 ifeq ($(detected_OS),Darwin)        # Mac OS X
 	LIBS := -lm -framework Cocoa -framework IOKit $(STATIC)  -framework CoreVideo
