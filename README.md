@@ -1,4 +1,5 @@
 # RInvaders | A Space Invaders Clone
+Space invaders made with RGFW and software rendering. Featuring the beloved mascot Lonic and a few other CS mascots... 
 ![screenshot](screenshot.png)
 
 # goals 
